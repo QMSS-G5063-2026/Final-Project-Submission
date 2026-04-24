@@ -9,7 +9,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 @st.cache_data
 def load_master():
     path = os.path.join(BASE_DIR, "streamlit_app", "master_cleaned.parquet")
-    return pd.read_parquet(path)
+    df = pd.read_parquet(path)
+    # Normalize ALL column names to uppercase for consistency across all pages
+    df.columns = [c.upper() for c in df.columns]
+    return df
 
 @st.cache_data
 def load_bubble_data():
