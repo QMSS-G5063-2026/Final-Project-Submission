@@ -45,58 +45,68 @@ tab1, tab2, tab3 = st.tabs(["Precinct Choropleth", "Arrest Heatmap", "Precinct B
 
 with tab1:
     geo = fetch_geojson()
+
     precinct_counts = (
         filtered.groupby("ARREST_PRECINCT").size()
         .reset_index(name="arrests")
     )
-    precinct_counts["ARREST_PRECINCT"] = precinct_counts["ARREST_PRECINCT"].astype(str)
+    precinct_counts["ARREST_PRECINCT"] = precinct_counts["ARREST_PRECINCT"].astype(int)
 
     if geo is None:
-        st.warning("Could not load precinct GeoJSON. Showing bar chart instead.")
+        st.warning("Could not load GeoJSON. Showing bar chart instead.")
         fig = px.bar(
             precinct_counts.sort_values("arrests", ascending=False),
-            x="ARREST_PRECINCT",
-            y="arrests",
+            x="ARREST_PRECINCT", y="arrests",
             title="Arrests by Precinct",
-            color="arrests",
-            color_continuous_scale="YlOrRd"
+            color="arrests", color_continuous_scale="YlOrRd"
         )
-        fig.update_layout(xaxis_tickangle=-45)
         st.plotly_chart(fig, use_container_width=True)
     else:
+        # ── Inspect what keys and value types the GeoJSON actually has ──
         sample_props = geo["features"][0]["properties"]
+        st.caption("GeoJSON properties found: " + str(list(sample_props.keys())))
+
+        # Find the precinct key
         precinct_key = None
-        for key in ["Precinct", "precinct", "PRECINCT", "pct", "PCT"]:
+        for key in ["Precinct", "precinct", "PRECINCT", "pct", "PCT", "police_precinct"]:
             if key in sample_props:
                 precinct_key = key
                 break
 
         if precinct_key is None:
-            st.warning("Could not match precinct key in GeoJSON. Showing bar chart instead.")
+            st.error("No precinct key found in GeoJSON. Falling back to bar chart.")
             fig = px.bar(
                 precinct_counts.sort_values("arrests", ascending=False),
-                x="ARREST_PRECINCT",
-                y="arrests",
+                x="ARREST_PRECINCT", y="arrests",
                 title="Arrests by Precinct",
-                color="arrests",
-                color_continuous_scale="YlOrRd"
+                color="arrests", color_continuous_scale="YlOrRd"
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
-            m = folium.Map(location=[40.73, -73.94], zoom_start=11, tiles="CartoDB dark_matter")
-            folium.Choropleth(
-                geo_data=geo,
-                data=precinct_counts,
-                columns=["ARREST_PRECINCT", "arrests"],
-                key_on="feature.properties." + precinct_key,
-                fill_color="YlOrRd",
-                fill_opacity=0.7,
-                line_opacity=0.3,
-                legend_name="Arrest Count by Precinct",
-                nan_fill_color="transparent",
-                nan_fill_opacity=0.1
-            ).add_to(m)
-            st_folium(m, width=None, height=600, use_container_width=True)
+            # Normalize GeoJSON precinct values to int to match our data
+            for feature in geo["features"]:
+                try:
+                    feature["properties"][precinct_key] = int(feature["properties"][precinct_key])
+                except (ValueError, TypeError):
+                    pass
+
+            # Use Plotly choropleth_mapbox — handles key matching much more reliably than folium
+            fig = px.choropleth_mapbox(
+                precinct_counts,
+                geojson=geo,
+                locations="ARREST_PRECINCT",
+                featureidkey="properties." + precinct_key,
+                color="arrests",
+                color_continuous_scale="YlOrRd",
+                mapbox_style="carto-darkmatter",
+                zoom=10,
+                center={"lat": 40.73, "lon": -73.94},
+                opacity=0.7,
+                labels={"arrests": "Arrest Count", "ARREST_PRECINCT": "Precinct"},
+                title="Arrests by Precinct"
+            )
+            fig.update_layout(margin={"r": 0, "t": 40, "l": 0, "b": 0}, height=600)
+            st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
     df_geo = filtered.dropna(subset=["Latitude", "Longitude"])
