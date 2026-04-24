@@ -109,17 +109,25 @@ with tab1:
             st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
-    df_geo = filtered.dropna(subset=["Latitude", "Longitude"])
+    # Use uppercase column names to match load_master() output
+    lat_col = "LATITUDE" if "LATITUDE" in filtered.columns else "Latitude"
+    lon_col = "LONGITUDE" if "LONGITUDE" in filtered.columns else "Longitude"
+
+    df_geo = filtered.dropna(subset=[lat_col, lon_col])
     df_geo = df_geo[
-        df_geo["Latitude"].between(40.45, 40.95) &
-        df_geo["Longitude"].between(-74.30, -73.65)
+        df_geo[lat_col].between(40.45, 40.95) &
+        df_geo[lon_col].between(-74.30, -73.65)
     ]
-    sample = df_geo[["Latitude", "Longitude"]].sample(
-        min(10000, len(df_geo)), random_state=42
-    )
-    m2 = folium.Map(location=[40.73, -73.94], zoom_start=11, tiles="CartoDB dark_matter")
-    HeatMap(sample.values.tolist(), radius=8, blur=10).add_to(m2)
-    st_folium(m2, width=None, height=600, use_container_width=True)
+
+    if df_geo.empty:
+        st.warning("No valid coordinates found after filtering.")
+    else:
+        sample = df_geo[[lat_col, lon_col]].sample(
+            min(10000, len(df_geo)), random_state=42
+        )
+        m2 = folium.Map(location=[40.73, -73.94], zoom_start=11, tiles="CartoDB dark_matter")
+        HeatMap(sample.values.tolist(), radius=8, blur=10).add_to(m2)
+        st_folium(m2, width=None, height=600, use_container_width=True)
 
 with tab3:
     precinct_counts2 = (
