@@ -1,9 +1,3 @@
-# Find this line in tab1:
-with open("streamlit_app/precinct_similarity_network.html", "r", encoding="utf-8") as f:
-
-# Find this line in tab2:
-with open("streamlit_app/offense_cooccurrence_network.html", "r", encoding="utf-8") as f:
-
 import streamlit as st
 import streamlit.components.v1 as components
 import os
