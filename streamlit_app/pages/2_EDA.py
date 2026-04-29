@@ -12,7 +12,6 @@ st.header("Exploratory Analysis")
 with st.spinner("Loading data..."):
     df = load_master()
 
-# All columns are uppercase after load_master()
 with st.sidebar:
     st.header("Filters")
     boroughs = st.multiselect(
@@ -31,12 +30,12 @@ st.caption("Showing " + str(len(filtered)) + " arrests")
 col1, col2 = st.columns(2)
 
 with col1:
-    fig = px.bar(
+    fig1 = px.bar(
         filtered["ARREST_BORO"].value_counts().reset_index(),
         x="ARREST_BORO", y="count",
         title="Arrests by Borough", color="ARREST_BORO"
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig1, use_container_width=True, key="boro_bar")
 
 with col2:
     fig2 = px.pie(
@@ -44,9 +43,9 @@ with col2:
         names="LAW_CAT_CD", values="count",
         title="Offense Severity Breakdown"
     )
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(fig2, use_container_width=True, key="severity_pie")
 
-# Row 2 — Monthly trend (YEAR and MONTH are now uppercase)
+# Row 2 — Monthly trend
 if "YEAR" in filtered.columns and "MONTH" in filtered.columns:
     monthly = filtered.groupby(["YEAR", "MONTH"]).size().reset_index(name="count")
     fig3 = px.line(
@@ -54,7 +53,7 @@ if "YEAR" in filtered.columns and "MONTH" in filtered.columns:
         title="Monthly Arrest Trend", markers=True,
         labels={"MONTH": "Month", "count": "Arrests", "YEAR": "Year"}
     )
-    st.plotly_chart(fig3, use_container_width=True)
+    st.plotly_chart(fig3, use_container_width=True, key="monthly_trend")
 
 # Row 3
 col3, col4 = st.columns(2)
@@ -66,7 +65,7 @@ with col3:
         title="Top 10 Offense Categories"
     )
     fig4.update_layout(yaxis=dict(autorange="reversed"))
-    st.plotly_chart(fig4, use_container_width=True)
+    st.plotly_chart(fig4, use_container_width=True, key="top10_offenses")
 
 with col4:
     weekday_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -78,7 +77,7 @@ with col4:
         )
         wd.columns = ["WEEKDAY", "count"]
         fig5 = px.bar(wd, x="WEEKDAY", y="count", title="Arrests by Day of Week")
-        st.plotly_chart(fig5, use_container_width=True)
+        st.plotly_chart(fig5, use_container_width=True, key="weekday_bar")
 
 # Row 4 — Demographics
 col5, col6 = st.columns(2)
@@ -89,7 +88,7 @@ with col5:
         x="count", y="PERP_RACE", orientation="h",
         title="Arrests by Race"
     )
-    st.plotly_chart(fig6, use_container_width=True)
+    st.plotly_chart(fig6, use_container_width=True, key="race_bar")
 
 with col6:
     if "AGE_GROUP" in filtered.columns:
@@ -98,5 +97,4 @@ with col6:
             x="AGE_GROUP", y="count",
             title="Arrests by Age Group"
         )
-        st.plotly_chart(fig7, use_container_width=True)
-    st.plotly_chart(fig7, use_container_width=True)
+        st.plotly_chart(fig7, use_container_width=True, key="age_bar")
